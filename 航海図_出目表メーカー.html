@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>航海図｜出目表メーカー</title>
+<style>
+:root{
+  --bg:#071522; --panel:#0d2233; --panel2:#102b40; --line:#23465e;
+  --text:#eaf6ff; --muted:#8eafc5; --accent:#4fd1c5; --accent2:#6aa8ff;
+  --bluebg:#dcecff; --bluetxt:#15539b; --orangebg:#fff0dc; --orangetxt:#9a4b00;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at top,#12334b 0,#071522 48%,#041019 100%);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:22px 16px 40px}
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;margin-bottom:18px}
+.brand{letter-spacing:.12em;color:var(--accent);font-size:12px;font-weight:800}
+h1{margin:5px 0 4px;font-size:28px;letter-spacing:.06em}
+.sub{margin:0;color:var(--muted);font-size:13px}
+.badge{border:1px solid #32617c;border-radius:999px;padding:8px 12px;color:#bfeeff;background:#0b1e2d;font-size:12px}
+.panel{background:linear-gradient(180deg,rgba(16,43,64,.96),rgba(8,27,41,.96));border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 12px 35px rgba(0,0,0,.25);margin-bottom:16px}
+.drop{border:1px dashed #46758f;border-radius:14px;padding:18px;text-align:center;background:#091d2b}
+input[type=file]{width:100%;font-size:14px;color:var(--muted)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+button{border:0;border-radius:12px;padding:12px 17px;font-weight:800;cursor:pointer;font-size:14px}
+.primary{background:linear-gradient(135deg,var(--accent),#3ea6d8);color:#041019}
+.secondary{background:#17364d;color:#d9efff;border:1px solid #2b5973}
+button:disabled{opacity:.4;cursor:not-allowed}
+.info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.card{background:#091c2a;border:1px solid #21435a;border-radius:13px;padding:12px}
+.label{font-size:11px;color:var(--muted);margin-bottom:5px}.value{font-size:20px;font-weight:850}
+.status{margin-top:12px;color:#a9d7e9;font-size:13px;min-height:18px}
+.tablebox{overflow:auto;border-radius:12px;border:1px solid #294e66;background:#f7fbfe}
+table{border-collapse:collapse;table-layout:fixed;font-family:Arial,"Yu Gothic",sans-serif;color:#17334a}
+th,td{border:1px solid #9db2c2;text-align:center;padding:0;height:27px;min-width:22px}
+th{background:#dce6ed;font-size:9px;height:24px}
+td.round,th.round{min-width:46px;width:46px;background:#eef4f7;font-size:10px}
+td.date,th.date{min-width:52px;width:52px;background:#eef4f7;font-size:9px}
+td.num{font-weight:850;font-size:10px}
+td.main{background:var(--bluebg);color:var(--bluetxt)}
+td.bonus{background:var(--orangebg);color:var(--orangetxt)}
+td.loop{background:#e9f0f5}
+td.boundary,th.boundary{border-left:2px solid #5d7485}
+.blank td{background:#fff;height:27px}
+.note{font-size:11px;color:#7996a9;margin-top:10px}
+@media(max-width:600px){.hero{align-items:flex-start}.badge{display:none}.info{grid-template-columns:1fr 1fr 1fr}.value{font-size:17px}h1{font-size:24px}}
+@media print{
+ body{background:white;color:black}.wrap{max-width:none;padding:0}.hero,.panel:first-of-type,.info,.note{display:none!important}
+ .panel{border:0;box-shadow:none;padding:0;margin:0;background:white}
+ .tablebox{overflow:visible;border:0}
+ table{width:auto}
+ @page{size:A4 landscape;margin:6mm}
+ th,td{height:6mm;min-width:6mm}
+ td.round,th.round{min-width:12mm;width:12mm} td.date,th.date{min-width:12mm;width:12mm}
+ td.num{font-size:9px} th{font-size:7px}
+ .blank td{height:6mm}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div><div class="brand">GREAT VOYAGE • NOA SYSTEM</div><h1>⚓ 航海図｜出目表メーカー</h1><p class="sub">CSVを読み込むだけ。出目を海図に配置して、そのまま印刷。</p></div>
+    <div class="badge">スマホ対応 / ローカル処理</div>
+  </header>
+
+  <section class="panel">
+    <div class="drop">
+      <div style="font-weight:800;margin-bottom:8px">CSVを選択</div>
+      <input id="file" type="file" accept=".csv,text/csv">
+    </div>
+    <div class="actions">
+      <button class="primary" id="make" disabled>🌊 出目表を作る</button>
+      <button class="secondary" id="print" disabled>🖨 印刷する</button>
+    </div>
+    <div class="status" id="status">CSVを選択してください。</div>
+  </section>
+
+  <section class="panel">
+    <div class="info">
+      <div class="card"><div class="label">種類</div><div class="value" id="game">—</div></div>
+      <div class="card"><div class="label">最新回</div><div class="value" id="latest">—</div></div>
+      <div class="card"><div class="label">次回海図</div><div class="value" id="next">—</div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div id="title" style="font-weight:850;font-size:16px;margin-bottom:10px">出目表</div>
+    <div class="tablebox"><table id="grid"></table></div>
+    <div class="note">本数字＝青 / ボーナス＝オレンジ　｜　最新20回＋空欄7行　｜　番号は実際の列位置に配置</div>
+  </section>
+</div>
+
+<script>
+let rows=[], gameInfo=null;
+
+const GAME=[
+ {name:"ミニロト", max:31, main:5, bonus:1},
+ {name:"ロト6", max:43, main:6, bonus:1},
+ {name:"ロト7", max:37, main:7, bonus:2}
+];
+
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,"");
+  const lines=[]; let row=[], cell="", quote=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(c==='"'){ if(quote && text[i+1]==='"'){cell+='"';i++;} else quote=!quote; }
+    else if(c===',' && !quote){row.push(cell);cell="";}
+    else if((c==='\n'||c==='\r') && !quote){
+      if(c==='\r' && text[i+1]==='\n')i++;
+      row.push(cell);cell="";
+      if(row.some(x=>x.trim()!=="")) lines.push(row);
+      row=[];
+    } else cell+=c;
+  }
+  if(cell!==""||row.length){row.push(cell);if(row.some(x=>x.trim()!==""))lines.push(row);}
+  return lines;
+}
+function detect(headers){
+  const nums=headers.filter(h=>/^第\d+数字$/.test(h));
+  const bonus=headers.filter(h=>h.includes("ボーナス数字"));
+  let max=nums.length===5?31:nums.length===6?43:nums.length===7?37:null;
+  if(!max){
+    const n=headers.length;
+    if(n>=37 && n<43) max=37;
+    else if(n>=43) max=43;
+    else max=31;
+  }
+  return GAME.find(x=>x.max===max)||GAME[2];
+}
+function csvNumber(s){const n=parseInt(String(s).replace(/[^0-9-]/g,""),10);return Number.isFinite(n)?n:null}
+
+async function readFile(file){
+  const buf=await file.arrayBuffer();
+  let text="";
+  for(const enc of ["shift-jis","utf-8"]){
+    try{
+      const t=new TextDecoder(enc).decode(buf);
+      if(t.includes("開催回")) { text=t; break; }
+      if(!text) text=t;
+    }catch(e){}
+  }
+  if(!text.includes("開催回")) throw Error("CSVの「開催回」列を読み取れませんでした。");
+  return text;
+}
+function build(data){
+  const headers=data[0].map(x=>x.trim());
+  gameInfo=detect(headers);
+  const idxRound=headers.indexOf("開催回"), idxDate=headers.indexOf("開催日");
+  const mainIdx=headers.map((h,i)=>/^第\d+数字$/.test(h)?i:-1).filter(i=>i>=0);
+  const bonusIdx=headers.map((h,i)=>h.includes("ボーナス数字")?i:-1).filter(i=>i>=0);
+  rows=data.slice(1).map(r=>({
+    round:csvNumber(r[idxRound]),
+    date:r[idxDate]||"",
+    main:mainIdx.map(i=>csvNumber(r[i])).filter(n=>n!=null),
+    bonus:bonusIdx.map(i=>csvNumber(r[i])).filter(n=>n!=null)
+  })).filter(r=>r.round!=null).sort((a,b)=>a.round-b.round);
+  if(!rows.length) throw Error("開催回が見つかりません。");
+  render();
+}
+function render(){
+  const latest=rows[rows.length-1];
+  document.getElementById("game").textContent=gameInfo.name;
+  document.getElementById("latest").textContent=latest.round+"回";
+  document.getElementById("next").textContent=(latest.round+1)+"回";
+  document.getElementById("title").textContent=`${gameInfo.name}　${latest.round+1}回`;
+  const recent=rows.slice(-20);
+  const cols=Array.from({length:gameInfo.max},(_,i)=>i+1);
+  const showLoop=gameInfo.name==="ロト7";
+  const loopCols=showLoop?[35,36,37]:[];
+  let h="<thead><tr><th class='round'>開催回</th><th class='date'>開催日</th>";
+  for(const n of loopCols) h+=`<th class='loop'>${n}</th>`;
+  for(const n of cols) h+=`<th class='${n===1?"boundary":""}'>${n}</th>`;
+  h+="</tr></thead><tbody>";
+  for(const r of recent){
+    h+=`<tr><td class='round'>${r.round}</td><td class='date'>${fmtDate(r.date)}</td>`;
+    for(const n of loopCols) h+=cell(r,n,true);
+    for(const n of cols) h+=cell(r,n,false);
+    h+="</tr>";
+  }
+  h+=`<tr style="height:2px"><td colspan="${2+loopCols.length+cols.length}" style="border:0;border-top:2px solid #486474;height:2px;padding:0"></td></tr>`;
+  for(let i=0;i<7;i++){
+    h+=`<tr class="blank"><td class="round"></td><td class="date"></td>`;
+    for(const n of loopCols)h+="<td></td>";
+    for(const n of cols)h+=`<td class="${n===1?"boundary":""}"></td>`;
+    h+="</tr>";
+  }
+  h+="</tbody>";
+  document.getElementById("grid").innerHTML=h;
+  document.getElementById("print").disabled=false;
+}
+function cell(r,n,isLoop){
+  const main=r.main.includes(n), bonus=r.bonus.includes(n);
+  let cls=isLoop?"loop":"num"; if(n===1&&!isLoop)cls+=" boundary";
+  if(bonus)cls+=" bonus"; else if(main)cls+=" main";
+  return `<td class="${cls}">${(main||bonus)?n:""}</td>`;
+}
+function fmtDate(s){
+  const m=String(s).match(/(\\d{4})[\\/\\-.年](\\d{1,2})[\\/\\-.月](\\d{1,2})/);
+  return m?`${String(m[2]).padStart(2,"0")}/${String(m[3]).padStart(2,"0")}`:s;
+}
+document.getElementById("file").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  try{
+    document.getElementById("status").textContent="CSVを読み込み中…";
+    const text=await readFile(f); const data=parseCSV(text); build(data);
+    document.getElementById("status").textContent=`読み込み完了：${f.name} ／ ${rows.length}回分`;
+    document.getElementById("make").disabled=false;
+  }catch(err){document.getElementById("status").textContent="読み込みエラー："+err.message;}
+});
+document.getElementById("make").addEventListener("click",()=>{if(rows.length)render()});
+document.getElementById("print").addEventListener("click",()=>window.print());
+</script>
+</body>
+</html>
