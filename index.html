@@ -197,20 +197,53 @@ function cell(r,n,isLoop){
   return `<td class="${cls}">${(main||bonus)?n:""}</td>`;
 }
 function fmtDate(s){
-  const m=String(s).match(/(\\d{4})[\\/\\-.年](\\d{1,2})[\\/\\-.月](\\d{1,2})/);
+  const m=String(s).match(/(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/);
   return m?`${String(m[2]).padStart(2,"0")}/${String(m[3]).padStart(2,"0")}`:s;
 }
-document.getElementById("file").addEventListener("change",async e=>{
-  const f=e.target.files[0]; if(!f)return;
+const fileInput=document.getElementById("file");
+const makeBtn=document.getElementById("make");
+const printBtn=document.getElementById("print");
+const statusEl=document.getElementById("status");
+let selectedFile=null;
+
+function selectFile(file){
+  if(!file)return;
+  selectedFile=file;
+  // iPhone/Safariではファイル選択後のchange通知が遅れることがあるため、
+  // まず「作る」ボタンを有効にして、解析はボタン押下時にも必ず行う。
+  makeBtn.disabled=false;
+  statusEl.textContent=`選択：${file.name} ／ 「出目表を作る」を押してください。`;
+}
+
+fileInput.addEventListener("change",()=>selectFile(fileInput.files && fileInput.files[0]));
+
+// Safari/iOSでchangeイベントが不安定な場合の保険。
+setInterval(()=>{
+  const f=fileInput.files && fileInput.files[0];
+  if(f && (!selectedFile || f.name!==selectedFile.name || f.size!==selectedFile.size || f.lastModified!==selectedFile.lastModified)){
+    selectFile(f);
+  }
+},500);
+
+makeBtn.addEventListener("click",async()=>{
+  const f=selectedFile || (fileInput.files && fileInput.files[0]);
+  if(!f){statusEl.textContent="CSVを選択してください。";return;}
   try{
-    document.getElementById("status").textContent="CSVを読み込み中…";
-    const text=await readFile(f); const data=parseCSV(text); build(data);
-    document.getElementById("status").textContent=`読み込み完了：${f.name} ／ ${rows.length}回分`;
-    document.getElementById("make").disabled=false;
-  }catch(err){document.getElementById("status").textContent="読み込みエラー："+err.message;}
+    makeBtn.disabled=true;
+    statusEl.textContent="CSVを読み込み中…";
+    const text=await readFile(f);
+    const data=parseCSV(text);
+    build(data);
+    statusEl.textContent=`読み込み完了：${f.name} ／ ${rows.length}回分`;
+    makeBtn.disabled=false;
+  }catch(err){
+    makeBtn.disabled=false;
+    statusEl.textContent="読み込みエラー："+(err && err.message ? err.message : err);
+    console.error(err);
+  }
 });
-document.getElementById("make").addEventListener("click",()=>{if(rows.length)render()});
-document.getElementById("print").addEventListener("click",()=>window.print());
+
+printBtn.addEventListener("click",()=>window.print());
 </script>
 </body>
 </html>
