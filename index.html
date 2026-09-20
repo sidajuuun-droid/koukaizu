@@ -55,9 +55,10 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
 .source-bonus{display:flex;flex-wrap:wrap;gap:5px}
 .source-bonus .source-num{background:var(--orangebg);color:var(--orangetxt)}
 @media(max-width:600px){
-  .source-table th,.source-table td{padding:9px 7px}
+  .source-table td{padding:8px 7px}
   .source-table .source-round{width:58px}
-  .source-num{min-width:27px;height:27px;font-size:12px;padding:0 5px}
+  .source-table .source-kind{width:52px;font-size:11px}
+  .source-numbers,.source-bonus{font-size:13px}
 }
 @media print{
   .source-panel{display:none!important}
@@ -104,11 +105,18 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
   </section>
 
   <section class="panel source-panel">
-    <div class="source-title">⚓ 大元データ｜直近2回</div>
+    <div class="source-title">直近2回</div>
     <table class="source-table" id="sourceTable">
-      <thead><tr><th class="source-round">開催回</th><th>本数字</th><th>ボーナス</th></tr></thead>
       <tbody>
-        <tr><td class="source-round">—</td><td>—</td><td>—</td></tr>
+        <tr>
+          <td class="source-round" rowspan="2">—</td>
+          <td class="source-kind">本数字</td>
+          <td class="source-numbers">—</td>
+        </tr>
+        <tr>
+          <td class="source-kind">ボーナス</td>
+          <td class="source-bonus">—</td>
+        </tr>
       </tbody>
     </table>
   </section>
@@ -224,11 +232,17 @@ function renderSourceData(){
   const recent2=rows.slice(-2).reverse();
   let h="";
   for(const r of recent2){
-    const main=r.main.map(n=>`<span class="source-num">${n}</span>`).join("");
-    const bonus=r.bonus.length
-      ? r.bonus.map(n=>`<span class="source-num">${n}</span>`).join("")
-      : "—";
-    h+=`<tr><td class="source-round">${r.round}回</td><td><div class="source-numbers">${main||"—"}</div></td><td><div class="source-bonus">${bonus}</div></td></tr>`;
+    const main=r.main.join("・") || "—";
+    const bonus=r.bonus.length ? r.bonus.join("・") : "—";
+    h+=`<tr>
+      <td class="source-round" rowspan="2">${r.round}回</td>
+      <td class="source-kind">本数字</td>
+      <td class="source-numbers">${main}</td>
+    </tr>
+    <tr>
+      <td class="source-kind">ボーナス</td>
+      <td class="source-bonus">${bonus}</td>
+    </tr>`;
   }
   document.querySelector("#sourceTable tbody").innerHTML=h || `<tr><td colspan="3">データなし</td></tr>`;
 }
