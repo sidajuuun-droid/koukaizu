@@ -43,6 +43,25 @@ td.loop{background:#e9f0f5}
 td.boundary,th.boundary{border-left:2px solid #5d7485}
 .blank td{background:#fff;height:27px}
 .note{font-size:11px;color:#7996a9;margin-top:10px}
+
+.source-title{font-weight:850;font-size:16px;margin-bottom:10px}
+.source-table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #294e66;border-radius:12px;background:#091c2a;color:var(--text)}
+.source-table th,.source-table td{border:0;border-bottom:1px solid #21435a;text-align:left;padding:10px 9px;vertical-align:middle}
+.source-table th{background:#102b40;color:var(--muted);font-size:11px;font-weight:700}
+.source-table tr:last-child td{border-bottom:0}
+.source-table .source-round{width:64px;white-space:nowrap;font-weight:850;color:#dff7ff}
+.source-numbers{display:flex;flex-wrap:wrap;gap:5px}
+.source-num{display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:29px;padding:0 6px;border-radius:7px;background:var(--bluebg);color:var(--bluetxt);font-weight:850;font-size:13px}
+.source-bonus{display:flex;flex-wrap:wrap;gap:5px}
+.source-bonus .source-num{background:var(--orangebg);color:var(--orangetxt)}
+@media(max-width:600px){
+  .source-table th,.source-table td{padding:9px 7px}
+  .source-table .source-round{width:58px}
+  .source-num{min-width:27px;height:27px;font-size:12px;padding:0 5px}
+}
+@media print{
+  .source-panel{display:none!important}
+}
 @media(max-width:600px){.hero{align-items:flex-start}.badge{display:none}.info{grid-template-columns:1fr 1fr 1fr}.value{font-size:17px}h1{font-size:24px}}
 @media print{
  body{background:white;color:black}.wrap{max-width:none;padding:0}.hero,.panel:first-of-type,.info,.note{display:none!important}
@@ -82,6 +101,16 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
       <div class="card"><div class="label">最新回</div><div class="value" id="latest">—</div></div>
       <div class="card"><div class="label">次回海図</div><div class="value" id="next">—</div></div>
     </div>
+  </section>
+
+  <section class="panel source-panel">
+    <div class="source-title">⚓ 大元データ｜直近2回</div>
+    <table class="source-table" id="sourceTable">
+      <thead><tr><th class="source-round">開催回</th><th>本数字</th><th>ボーナス</th></tr></thead>
+      <tbody>
+        <tr><td class="source-round">—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <section class="panel">
@@ -165,6 +194,7 @@ function render(){
   document.getElementById("latest").textContent=latest.round+"回";
   document.getElementById("next").textContent=(latest.round+1)+"回";
   document.getElementById("title").textContent=`${gameInfo.name}　${latest.round+1}回`;
+  renderSourceData();
   const recent=rows.slice(-20);
   const cols=Array.from({length:gameInfo.max},(_,i)=>i+1);
   const showLoop=gameInfo.name==="ロト7";
@@ -189,6 +219,18 @@ function render(){
   h+="</tbody>";
   document.getElementById("grid").innerHTML=h;
   document.getElementById("print").disabled=false;
+}
+function renderSourceData(){
+  const recent2=rows.slice(-2).reverse();
+  let h="";
+  for(const r of recent2){
+    const main=r.main.map(n=>`<span class="source-num">${n}</span>`).join("");
+    const bonus=r.bonus.length
+      ? r.bonus.map(n=>`<span class="source-num">${n}</span>`).join("")
+      : "—";
+    h+=`<tr><td class="source-round">${r.round}回</td><td><div class="source-numbers">${main||"—"}</div></td><td><div class="source-bonus">${bonus}</div></td></tr>`;
+  }
+  document.querySelector("#sourceTable tbody").innerHTML=h || `<tr><td colspan="3">データなし</td></tr>`;
 }
 function cell(r,n,isLoop){
   const main=r.main.includes(n), bonus=r.bonus.includes(n);
