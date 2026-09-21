@@ -45,35 +45,38 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
 .note{font-size:11px;color:#7996a9;margin-top:10px}
 
 .source-title{font-weight:850;font-size:16px;margin-bottom:10px}
-.source-table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #294e66;border-radius:12px;background:#091c2a;color:var(--text)}
-.source-table th,.source-table td{border:0;border-bottom:1px solid #21435a;text-align:left;padding:10px 9px;vertical-align:middle}
-.source-table th{background:#102b40;color:var(--muted);font-size:11px;font-weight:700}
+.source-table{width:100%;border-collapse:collapse;border:1px solid #294e66;border-radius:12px;overflow:hidden;background:#091c2a;color:var(--text)}
+.source-table td{border:0;border-bottom:1px solid #21435a;text-align:left;padding:9px 10px;vertical-align:middle;line-height:1.35}
 .source-table tr:last-child td{border-bottom:0}
-.source-table .source-round{width:64px;white-space:nowrap;font-weight:850;color:#dff7ff}
-.source-numbers{display:flex;flex-wrap:wrap;gap:5px}
-.source-num{display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:29px;padding:0 6px;border-radius:7px;background:var(--bluebg);color:var(--bluetxt);font-weight:850;font-size:13px}
-.source-bonus{display:flex;flex-wrap:wrap;gap:5px}
-.source-bonus .source-num{background:var(--orangebg);color:var(--orangetxt)}
+.source-table .source-round{width:62px;white-space:nowrap;font-weight:850;color:#dff7ff}
+.source-table .source-line{font-size:14px;white-space:nowrap}
+.source-table .source-bonus-line{color:#ffd7ad}
 @media(max-width:600px){
-  .source-table td{padding:8px 7px}
+  .source-table td{padding:9px 10px}
   .source-table .source-round{width:58px}
-  .source-table .source-kind{width:52px;font-size:11px}
-  .source-numbers,.source-bonus{font-size:13px}
+  .source-table .source-line{font-size:14px;white-space:nowrap}
 }
 @media print{
   .source-panel{display:none!important}
 }
 @media(max-width:600px){.hero{align-items:flex-start}.badge{display:none}.info{grid-template-columns:1fr 1fr 1fr}.value{font-size:17px}h1{font-size:24px}}
 @media print{
- body{background:white;color:black}.wrap{max-width:none;padding:0}.hero,.panel:first-of-type,.info,.note{display:none!important}
- .panel{border:0;box-shadow:none;padding:0;margin:0;background:white}
- .tablebox{overflow:visible;border:0}
- table{width:auto}
- @page{size:A4 landscape;margin:6mm}
- th,td{height:6mm;min-width:6mm}
- td.round,th.round{min-width:12mm;width:12mm} td.date,th.date{min-width:12mm;width:12mm}
- td.num{font-size:9px} th{font-size:7px}
- .blank td{height:6mm}
+ body{background:white;color:black;margin:0}
+ .wrap{width:100%;max-width:none;margin:0;padding:0}
+ .hero,.panel:first-of-type,.info,.note,.source-panel{display:none!important}
+ .panel{border:0;box-shadow:none;padding:0;margin:0;background:white;break-inside:avoid;page-break-inside:avoid}
+ .tablebox{overflow:visible;border:0;break-inside:avoid;page-break-inside:avoid}
+ table{width:100%;table-layout:fixed;border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}
+ @page{size:A4 landscape;margin:5mm}
+ th,td{height:5.5mm;min-width:0;padding:0;line-height:1}
+ th{font-size:7px;height:5.5mm}
+ td.num{font-size:8px}
+ td.round,th.round{min-width:11mm;width:11mm;font-size:8px}
+ td.date,th.date{min-width:11mm;width:11mm;font-size:7px}
+ td.loop,th.loop{min-width:5.5mm;width:5.5mm}
+ td.boundary,th.boundary{border-left:1.5px solid #5d7485}
+ .blank td{height:5.5mm}
+ #title{font-size:11px!important;margin:0 0 2mm!important;color:#111}
 }
 </style>
 </head>
@@ -110,7 +113,7 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
       <tbody>
         <tr>
           <td class="source-round" rowspan="2">—</td>
-          <td class="source-kind">本数字</td>
+          <td class="source-kind"></td>
           <td class="source-numbers">—</td>
         </tr>
         <tr>
@@ -124,7 +127,7 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
   <section class="panel">
     <div id="title" style="font-weight:850;font-size:16px;margin-bottom:10px">出目表</div>
     <div class="tablebox"><table id="grid"></table></div>
-    <div class="note">本数字＝青 / ボーナス＝オレンジ　｜　最新20回＋空欄7行　｜　番号は実際の列位置に配置</div>
+    <div class="note">＝青 / ボーナス＝オレンジ　｜　最新20回＋空欄7行　｜　番号は実際の列位置に配置</div>
   </section>
 </div>
 
@@ -232,19 +235,14 @@ function renderSourceData(){
   const recent2=rows.slice(-2).reverse();
   let h="";
   for(const r of recent2){
-    const main=r.main.join("・") || "—";
-    const bonus=r.bonus.length ? r.bonus.join("・") : "—";
+    const main=r.main.map(n=>String(n).padStart(2,"0")).join(" ") || "—";
+    const bonus=r.bonus.map(n=>`(${String(n).padStart(2,"0")})`).join(" ") || "—";
     h+=`<tr>
-      <td class="source-round" rowspan="2">${r.round}回</td>
-      <td class="source-kind">本数字</td>
-      <td class="source-numbers">${main}</td>
-    </tr>
-    <tr>
-      <td class="source-kind">ボーナス</td>
-      <td class="source-bonus">${bonus}</td>
+      <td class="source-round">${r.round}回</td>
+      <td class="source-line">${main}　<span class="source-bonus-line">${bonus}</span></td>
     </tr>`;
   }
-  document.querySelector("#sourceTable tbody").innerHTML=h || `<tr><td colspan="3">データなし</td></tr>`;
+  document.querySelector("#sourceTable tbody").innerHTML=h || `<tr><td colspan="2">データなし</td></tr>`;
 }
 function cell(r,n,isLoop){
   const main=r.main.includes(n), bonus=r.bonus.includes(n);
