@@ -78,6 +78,19 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
  .blank td{height:5.5mm}
  #title{font-size:11px!important;margin:0 0 2mm!important;color:#111}
 }
+
+.sea-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.sea-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.sea-status{font-size:13px;color:#bfeeff;margin-bottom:10px}
+.sea-grid-wrap{overflow:auto}
+.sea-grid{border-collapse:collapse;margin:auto;table-layout:fixed}
+.sea-grid td{width:48px;height:42px;border:1px solid #31536a;text-align:center;vertical-align:middle;font-weight:800;background:#081b29;color:#7893a5;position:relative}
+.sea-grid td.source{background:#17465d;color:#eaf6ff}
+.sea-grid td.sea{background:#2b6b68;color:#fff;border-color:#79d1c5}
+.sea-grid td.island{background:#73552e;color:#fff;border-color:#e8c47b}
+.sea-grid td.empty{opacity:.55}
+.sea-report{margin-top:12px;background:#091c2a;border:1px solid #21435a;border-radius:12px;padding:12px;font-size:13px;line-height:1.65;white-space:pre-wrap}
+@media(max-width:600px){.sea-head{align-items:flex-start;flex-direction:column}.sea-grid td{width:43px;height:39px}}
 </style>
 </head>
 <body>
@@ -113,7 +126,7 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
       <tbody>
         <tr>
           <td class="source-round" rowspan="2">—</td>
-          <td class="source-kind"></td>
+          <td class="source-kind">本数字</td>
           <td class="source-numbers">—</td>
         </tr>
         <tr>
@@ -124,10 +137,20 @@ td.boundary,th.boundary{border-left:2px solid #5d7485}
     </table>
   </section>
 
+  <section class="panel sea-panel">
+    <div class="sea-head">
+      <div>🌊 <b>次回海図</b><div class="sea-sub">直前2回の本数字だけを使用・ボーナス除外</div></div>
+      <button class="secondary" id="copySea" disabled>📋 海図結果をコピー</button>
+    </div>
+    <div id="seaStatus" class="sea-status">海図はまだ作成されていません。</div>
+    <div id="seaGrid" class="sea-grid-wrap"></div>
+    <div id="seaReport" class="sea-report"></div>
+  </section>
+
   <section class="panel">
     <div id="title" style="font-weight:850;font-size:16px;margin-bottom:10px">出目表</div>
     <div class="tablebox"><table id="grid"></table></div>
-    <div class="note">＝青 / ボーナス＝オレンジ　｜　最新20回＋空欄7行　｜　番号は実際の列位置に配置</div>
+    <div class="note">本数字＝青 / ボーナス＝オレンジ　｜　最新20回＋空欄7行　｜　番号は実際の列位置に配置</div>
   </section>
 </div>
 
@@ -206,6 +229,7 @@ function render(){
   document.getElementById("next").textContent=(latest.round+1)+"回";
   document.getElementById("title").textContent=`${gameInfo.name}　${latest.round+1}回`;
   renderSourceData();
+  renderSeaChart();
   const recent=rows.slice(-20);
   const cols=Array.from({length:gameInfo.max},(_,i)=>i+1);
   const showLoop=gameInfo.name==="ロト7";
@@ -231,6 +255,54 @@ function render(){
   document.getElementById("grid").innerHTML=h;
   document.getElementById("print").disabled=false;
 }
+function renderSeaChart(){
+  const target=rows[rows.length-1].round+1;
+  const a=rows[rows.length-2], b=rows[rows.length-1];
+  if(!a||!b||gameInfo.name!=="ロト7"){
+    document.getElementById("seaStatus").textContent="海図は現在ロト7のみ対応です。";
+    return;
+  }
+  const nums=[...new Set([...a.main,...b.main])].sort((x,y)=>x-y);
+  const source=new Set(nums);
+  const pos=n=>{ if(n<1||n>37)return null; const col=Math.floor((n-1)/10), row=(n-1)%10; return [row,col]; };
+  const key=(r,c)=>`${r},${c}`;
+  const cells=new Map(); nums.forEach(n=>{const p=pos(n); if(p)cells.set(key(...p),n);});
+  const seen=new Set(), comps=[];
+  for(const [k,n] of cells){
+    if(seen.has(k))continue;
+    const q=[k], comp=[]; seen.add(k);
+    while(q.length){
+      const cur=q.shift(), [r,c]=cur.split(',').map(Number); comp.push(cells.get(cur));
+      for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
+        if(!dr&&!dc)continue; const nr=r+dr,nc=c+dc, nk=key(nr,nc);
+        if(cells.has(nk)&&!seen.has(nk)){seen.add(nk);q.push(nk);}
+      }
+    }
+    comps.push(comp.sort((x,y)=>x-y));
+  }
+  comps.sort((x,y)=>y.length-x.length || x[0]-y[0]);
+  const islands=comps.filter(c=>c.length===1).flat();
+  let h='<table class="sea-grid"><tbody>';
+  for(let r=0;r<10;r++){
+    h+='<tr>';
+    for(let c=0;c<4;c++){
+      const n=r+c*10+1;
+      if(n>37){h+='<td class="empty"></td>';continue;}
+      const is=source.has(n), comp=comps.find(x=>x.includes(n));
+      const cls=is?(comp&&comp.length===1?'island':'sea'):'';
+      h+=`<td class="${cls}">${n}</td>`;
+    }
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById('seaGrid').innerHTML=h;
+  const sizeText=comps.map(c=>c.length).join('＋')||'なし';
+  const compText=comps.map((c,i)=>`第${i+1}海域：${c.join('・')}`).join('\n')||'なし';
+  const report=`【${target}回 海図確定】\n材料：${a.round}回＋${b.round}回（本数字のみ）\n使用マス：${nums.join('・')}\n\n【海域】\n${compText}\n\n【海域サイズ】\n${sizeText}\n\n【孤島】\n${islands.length?islands.join('・'):'なし'}\n\n【指差し確認】\n①対象回 OK\n②材料2回 OK\n③ボーナス除外 OK\n④座標配置 OK\n⑤8方向隣接 OK\n⑥盤外処理 OK\n⑦海域連結確認 OK\n\n海図確定。ここで分析を停止。`;
+  document.getElementById('seaStatus').textContent=`${target}回海図：${sizeText} ／ 材料 ${a.round}回＋${b.round}回`;
+  document.getElementById('seaReport').textContent=report;
+  const copy=document.getElementById('copySea'); copy.disabled=false; copy.onclick=async()=>{try{await navigator.clipboard.writeText(report);copy.textContent='✅ コピーしました';setTimeout(()=>copy.textContent='📋 海図結果をコピー',1400)}catch(e){copy.textContent='コピー失敗'}};
+}
 function renderSourceData(){
   const recent2=rows.slice(-2).reverse();
   let h="";
@@ -239,7 +311,7 @@ function renderSourceData(){
     const bonus=r.bonus.map(n=>`(${String(n).padStart(2,"0")})`).join(" ") || "—";
     h+=`<tr>
       <td class="source-round">${r.round}回</td>
-      <td class="source-line">${main}　<span class="source-bonus-line">${bonus}</span></td>
+      <td class="source-line">本数字　${main}　<span class="source-bonus-line">${bonus}</span></td>
     </tr>`;
   }
   document.querySelector("#sourceTable tbody").innerHTML=h || `<tr><td colspan="2">データなし</td></tr>`;
